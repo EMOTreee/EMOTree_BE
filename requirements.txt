@@ -1,0 +1,9 @@
+# pip install -r requirements.txt
+
+python-dotenv
+openai
+requests
+PyMySQL
+fastapi
+fastapi[standard]
+pydantic
