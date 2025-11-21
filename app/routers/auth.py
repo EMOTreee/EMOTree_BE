@@ -59,7 +59,7 @@ def kakao_login(code: str):
 def get_user(kakao_token: str = Cookie(None)):
 
     if not kakao_token:
-        raise HTTPException(401, "로그인 필요")
+        raise HTTPException(200, "로그인 필요")
 
     profile = get_profile(kakao_token)
 
