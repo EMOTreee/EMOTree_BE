@@ -1,15 +1,24 @@
 import pymysql
 
-db = pymysql.connect(
-    host="localhost",
-    user="root",
-    password="1234",
-    database="emotree",
-    charset="utf8",
-    autocommit=True
-)
+def get_db():
+    conn = pymysql.connect(
+        host="localhost",
+        user="root",
+        password="1234",
+        database="emotree",
+        charset="utf8",
+        autocommit=True,
+        cursorclass=pymysql.cursors.DictCursor
+    )
+    try:
+        yield conn
+    finally:
+        conn.close()
+
 
 def init_db():
+    db_gen = get_db()
+    db = next(db_gen)
     cursor = db.cursor()
 
     cursor.execute("""
@@ -24,5 +33,3 @@ def init_db():
 
     db.commit()
     db.close()
-
-cursor = db.cursor()
