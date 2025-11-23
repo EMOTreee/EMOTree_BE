@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional, TYPE_CHECKING
 
 from sqlmodel import SQLModel, Field, Relationship
-from app.core.time import now_kst
+from app.utils.time import now_kst
 
 if TYPE_CHECKING:
     from app.models.user import User

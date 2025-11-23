@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Optional
 from sqlmodel import Relationship, SQLModel, Field, Column
 from sqlalchemy import Enum as SqlEnum
 
-from app.core.time import now_kst
+from app.utils.time import now_kst
 from app.models.enums import EmotionLabel
 if TYPE_CHECKING:
     from app.models.user import User

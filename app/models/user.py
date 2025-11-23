@@ -1,7 +1,7 @@
 from typing import List
 from sqlmodel import SQLModel, Field, Relationship
 from datetime import datetime
-from app.core.time import now_kst
+from app.utils.time import now_kst
 from app.models.ai_monthly_report import AiMonthlyReport
 from app.models.emotion_expression_result import EmotionExpressionResult
 from app.models.emotion_quiz_result import EmotionQuizResult

@@ -4,7 +4,7 @@ from typing import Optional, TYPE_CHECKING
 from sqlmodel import SQLModel, Field, Column, Relationship
 from sqlalchemy import Enum as SqlEnum
 
-from app.core.time import now_kst
+from app.utils.time import now_kst
 from app.models.enums import EmotionLabel
 
 if TYPE_CHECKING:
