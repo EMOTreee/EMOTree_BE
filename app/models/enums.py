@@ -1,8 +1,8 @@
 from enum import Enum
 
 class EmotionLabel(str, Enum):
-    HAPPY = "HAPPY"
-    SAD = "SAD"
-    ANGRY = "ANGRY"
+    JOY = "JOY"
+    ANGER = "ANGER"
+    SADNESS = "SADNESS"
     SURPRISE = "SURPRISE"
     ANXIETY = "ANXIETY"
