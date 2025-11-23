@@ -7,3 +7,6 @@ PyMySQL
 fastapi
 fastapi[standard]
 pydantic
+pydantic-settings
+cryptography
+python-jose[cryptography]
