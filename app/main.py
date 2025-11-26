@@ -21,7 +21,7 @@ app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173"
+        "http://localhost:5173",
         "https://emotreee.vercel.app"
     ],
     allow_methods=["*"],
