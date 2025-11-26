@@ -1,29 +1,25 @@
-<!-- PR title format: "[TAG] Brief description" -->
-<!-- Example: ✨ [FEAT] Add support for monochromacy -->
-
-## Type of Change
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Documentation update
-- [ ] Performance improvement
-
-## 📝 Description
-<!-- Describe what you changed in this PR. You can attach images if needed -->
+<!-- PR 제목은 "[태그] 작업 내용 요약" 으로 작성해주세요 -->
+<!-- ex) ✨ [FEAT] 로그인 페이지 UI 구현 -->
 
 
-## ✔️ Checklist
-- [ ] I've read the [Contributing Guide](CONTRIBUTING.md)
-- [ ] I have checked that I'm merging into the correct branch (not `master` by mistake)
-- [ ] I have tested these changes locally and they work without errors
-- [ ] I have run `pnpm build` and it completes successfully
-- [ ] I have run `pnpm lint` and there are no linting errors
-- [ ] I have added/updated tests if needed
-- [ ] I have updated documentation if needed
+## 📝 작업 내용
+<!-- 이번 PR에서 작업한 내용을 간략히 설명해주세요(이미지 첨부 가능) -->
+- 로그인 API 구현
 
 
-## 📸 Screenshots (Optional)
-<!-- Add screenshots if applicable -->
+## ✔️ 체크 리스트
+- [ ] Merge 하려는 브랜치가 올바른가? (`main` branch에 실수로 PR 생성 금지)
+- [ ] Merge 하려는 PR 및 Commit들을 **로컬**에서 실행했을 때 에러가 발생하지 않았는가?
+
+      
+## 📸 스크린샷 (선택)
+<!-- 스크린샷이 필요한 과제면 스크린샷을 첨부해주세요 -->
 
 
-## 💬 Review Notes (Optional)
-<!-- Any specific areas you'd like reviewers to focus on? -->
+## 💬 리뷰 요구사항(선택)
+<!-- 리뷰어가 특별히 봐주었으면 하는 부분이 있다면 작성해주세요 -->
+<!--ex) 메서드 XXX의 이름을 더 잘 짓고 싶은데 혹시 좋은 명칭이 있을까요? -->
+
+
+## ➕ 추후 계획(선택)
+<!-- 추가로 계획 중인 기능이나 리팩토링 예정 중인 기능이 있다면 작성해주세요 -->
