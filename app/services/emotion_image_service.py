@@ -12,6 +12,7 @@ load_dotenv()
 
 
 async def analyze_emotion_service(    
+    *,
     image_bytes: bytes,
     target_emotion: str,
     token: str | None,
