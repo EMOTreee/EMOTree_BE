@@ -3,6 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routers import auth, user
 from app.db.init_db import init_db
 from contextlib import asynccontextmanager
+from dotenv import load_dotenv
+
+load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
