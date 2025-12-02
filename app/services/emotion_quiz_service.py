@@ -126,7 +126,8 @@ def _analyze_emotion_features_from_base64(
 
 def pick_static(openai_client) -> Tuple[str, EmotionLabel, str]:
 
-    emotion = random.choice(list(EmotionLabel))
+    emotions = [e for e in EmotionLabel if e != "RANDOM"]
+    emotion = random.choice(emotions)
     folder_path = os.path.join(settings.IMAGE_ROOT, emotion)
 
     print(folder_path)
@@ -194,7 +195,7 @@ def generate_question(
         image_url, answer, summary = pick_static(openai_client)
     
     qid = uuid.uuid4().hex
-    _quiz_cache[qid] = {"answer": answer, "ts": time.time()}
+    _quiz_cache[qid] = {"answer": answer, "ts": time.time(), "summary": summary}
     return qid, image_url, summary
 
 def grade(question_id: str, user_answer: EmotionLabel):
@@ -203,5 +204,5 @@ def grade(question_id: str, user_answer: EmotionLabel):
         return None  # 만료됨
     correct = data["answer"]
     is_correct = (user_answer == correct)
-    feedback = "정답입니다." if is_correct else f"정답은 {correct.value}."
+    feedback = data["summary"]
     return is_correct, correct, feedback
