@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     KAKAO_REDIRECT_URI: str
 
     OPENAI_API_KEY: str
+    OPENAI_ORGANIZATION_ID: str
 
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
@@ -15,6 +16,8 @@ class Settings(BaseSettings):
     MYSQL_USER: str = "root"
     MYSQL_PASSWORD: str
     MYSQL_DB: str = "emotree"
+
+    STATIC_IMAGE_DIR: str = "static/images"
 
     # SQLAlchemy MySQL Connection URI
     @property
