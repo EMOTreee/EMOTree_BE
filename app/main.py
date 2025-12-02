@@ -10,7 +10,6 @@ from app.core.config import settings
 
 load_dotenv()
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # startup
@@ -28,6 +27,8 @@ app.add_middleware(
     allow_headers=["*"],
     allow_credentials=True,
 )
+
+app.mount("/static", StaticFiles(directory=settings.STATIC_ROOT), name="static")
 
 app.include_router(auth.router)
 app.include_router(user.router)

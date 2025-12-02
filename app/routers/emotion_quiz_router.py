@@ -4,22 +4,21 @@ from app.schemas.emotion_quiz_schema import (
 )
 from app.services.emotion_quiz_service import generate_question, grade
 from app.core.config import settings
+from openai import OpenAI
 
 router = APIRouter(prefix="/quiz", tags=["퀴즈"])
 
 # 선택: DALLE 사용 여부를 쿼리로 제어. 기본은 STATIC
 @router.get("/generate", response_model=QuizGenerateResponse, summary="퀴즈 생성")
 def generate(use_dalle: bool = False):
-    # DALLE 쓰려면 openai client 준비
-    client = None
-    if use_dalle and settings.OPENAI_API_KEY:
-        from openai import OpenAI
-        client = OpenAI(api_key=settings.OPENAI_API_KEY, organization=settings.OPENAI_ORGANIZATION_ID)
-    qid, image_url, summary = generate_question("DALLE", client)
+    # DALLE 쓰려면 openai client 준비    
+    client = OpenAI(api_key=settings.OPENAI_API_KEY, organization=settings.OPENAI_ORGANIZATION_ID)
+
+    source = "DALLE" if use_dalle else "STATIC"
+    qid, image_url, summary = generate_question(source, client)
     return QuizGenerateResponse(
         questionId=qid,
         imageUrl=image_url,
-        choices=EMOTION_CHOICES,
         summary=summary
     )
 

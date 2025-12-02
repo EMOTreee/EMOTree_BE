@@ -1,6 +1,9 @@
 from pydantic_settings import BaseSettings
+import os
 
 class Settings(BaseSettings):
+    SERVER_URL: str
+
     KAKAO_CLIENT_ID: str
     KAKAO_REDIRECT_URI: str
 
@@ -17,8 +20,11 @@ class Settings(BaseSettings):
     MYSQL_PASSWORD: str
     MYSQL_DB: str = "emotree"
 
-    STATIC_IMAGE_DIR: str = "static/images"
-
+    BASE_DIR: str = os.path.dirname(os.path.abspath(__file__))
+    PROJECT_ROOT: str = os.path.abspath(os.path.join(BASE_DIR, "../../")) 
+    STATIC_ROOT: str = os.path.join(PROJECT_ROOT, "static") 
+    IMAGE_ROOT: str = os.path.join(PROJECT_ROOT, "static", "images", "GENERATED")
+    
     # SQLAlchemy MySQL Connection URI
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
