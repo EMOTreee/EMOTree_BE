@@ -11,3 +11,4 @@ pydantic-settings
 cryptography
 python-jose[cryptography]
 sqlmodel
+cachetools>=5,<6
