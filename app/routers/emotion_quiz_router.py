@@ -17,14 +17,14 @@ def generate(use_dalle: bool = False):
     source = "DALLE" if use_dalle else "STATIC"
     qid, image_url, summary = generate_question(source, client)
     return QuizGenerateResponse(
-        questionId=qid,
+        quizId=qid,
         imageUrl=image_url,
         summary=summary
     )
 
 @router.post("/submit", response_model=QuizSubmitResponse, summary="정답 제출")
 def submit(payload: QuizSubmitRequest):
-    result = grade(payload.questionId, payload.userAnswer)
+    result = grade(payload.quizId, payload.userAnswer)
     if result is None:
         raise HTTPException(status_code=410, detail="문항이 만료되었거나 존재하지 않습니다.")
     is_correct, correct, feedback = result

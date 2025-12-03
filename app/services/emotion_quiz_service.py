@@ -152,12 +152,14 @@ def pick_static(openai_client) -> Tuple[str, EmotionLabel, str]:
     with open(abs_path, "rb") as f:
             png_b64 = base64.b64encode(f.read()).decode("utf-8")
 
-    summary = _analyze_emotion_features_from_base64(
-        openai_client=openai_client,
-        b64_image=png_b64,
-        emotion=emotion,
-        mime="image/png",
-    )
+    summary = _summary_for(emotion)     # 비용 문제로 임시 수정
+
+    # summary = _analyze_emotion_features_from_base64(
+    #     openai_client=openai_client,
+    #     b64_image=png_b64,
+    #     emotion=emotion,
+    #     mime="image/png",
+    # )
 
     return (image_url, emotion, summary)
 
