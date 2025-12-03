@@ -8,7 +8,7 @@ EMOTION_CHOICES = [
 
 class QuizGenerateResponse(BaseModel):
     quizId: str = Field(..., description="제출 시 사용할 ID")
-    imageUrl: str = Field(..., description="객관식 퀴즈 이미지")
+    quizImageUrl: str = Field(..., description="객관식 퀴즈 이미지")
     summary: str | None = Field(None, description="이미지 설명(선택)")
 
 class QuizSubmitRequest(BaseModel):

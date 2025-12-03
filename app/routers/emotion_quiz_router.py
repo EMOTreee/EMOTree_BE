@@ -18,7 +18,7 @@ def generate(use_dalle: bool = False):
     qid, image_url, summary = generate_question(source, client)
     return QuizGenerateResponse(
         quizId=qid,
-        imageUrl=image_url,
+        quizImageUrl=image_url,
         summary=summary
     )
 
