@@ -48,3 +48,12 @@ def kakao_login(code: str, session: SessionDep):
 def logout():
     res = JSONResponse({"success": True})
     return clear_token_cookie(res)
+
+# 임시 테스트용 
+from app.utils.jwt_provider import *
+from fastapi import Response
+@router.post("/test-login")
+async def test_login(response: Response):
+    test_token = create_access_token({"user_id": 1})
+    response.set_cookie(key="access_token", value=test_token, httponly=True)
+    return {"message": "테스트 로그인 완료", "access_token": test_token}

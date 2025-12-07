@@ -27,6 +27,9 @@ class SituationCreateResponse(BaseModel):
 
 # 공감 메시지 평가 요청(RequestBody)
 class EmpathyEvaluateRequest(BaseModel):
+    emotion: EmotionLabel = Field( # 이거.... 맞나..?
+        description="사용자가 선택한 감정 (EmotionLabel Enum)"
+    )
     scenario: str = Field(
         description="사용자가 선택한 감정에 맞게 생성된 시나리오 텍스트"
     )
