@@ -1,6 +1,7 @@
 import json
 import random
 import os
+from sqlmodel import Session
 from fastapi import Request
 from sqlmodel import Session
 from openai import OpenAI
@@ -12,6 +13,7 @@ from app.schemas.emotion_empathy_schema import (
     EmpathyEvaluateRequest,
 )
 from app.utils.jwt_provider import verify_access_token
+from app.models.empathy_training_result import EmpathyTrainingResult
 
 #서비스
 
@@ -89,9 +91,12 @@ async def create_empathy_scenario_service(
 async def evaluate_empathy_message_service(
     *,
     body: EmpathyEvaluateRequest,
+    token: str | None,
+    session: Session
 ):
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+    emotion = body.emotion # 선택한 감정도 저장해야하기때문에 추가
     scenario = body.scenario
     user_message = body.userMessage
 
@@ -138,7 +143,7 @@ async def evaluate_empathy_message_service(
 
     result_text = response.choices[0].message.content
 
-    # JSON 파싱
+    # GPT응답 JSON 파싱
     try:
         gpt_json = json.loads(result_text)
     except Exception:
@@ -147,6 +152,30 @@ async def evaluate_empathy_message_service(
     score = gpt_json["score"]
     feedback = gpt_json["feedback"]
 
+    #  access_token → user_id 파싱
+    # -------------------------------------------------------
+    user_id = None
+
+    if token:
+        payload = verify_access_token(token)  
+        if payload:
+            user_id = int(payload.get("sub"))  
+
+    # 🔥 user_id 있으면 DB 저장
+    if user_id:
+        history = EmpathyTrainingResult(
+            user_id=user_id,
+            emotion_label=emotion,
+            scenario_text=scenario,
+            user_reply=user_message,
+            empathy_score = score,
+            feedback=feedback
+        )
+        session.add(history)
+        session.commit()
+        session.refresh(history)
+
+    # 점수와 gpt피드백 최종 반환
     return {
     "score": score,
     "feedback": feedback

@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, Header
+from fastapi import APIRouter, Form, File, Request, Depends, Cookie
+from app.routers.dependencies import get_db as get_session
 
-#from sqlmodel import Session
+from sqlmodel import Session
 # from app.core.db import get_session
 
 from app.schemas.emotion_empathy_schema import (
@@ -48,35 +49,22 @@ async def create_empathy_scenario(
 # -------------------------------------------------------
 @router.post("/submit", response_model=EmpathyEvaluateResponse)
 async def evaluate_empathy_message(
-    body: EmpathyEvaluateRequest,
-    session: SessionDep,
-    user: CurrentUserDep, # 로그인한 User 자동 주입
+    body: EmpathyEvaluateRequest,                          # ✔ 바디 받기
+    access_token: str | None = Cookie(default=None),       # ✔ 쿠키에서 액세스토큰 받기
+    session: Session = Depends(get_session),               # ✔ DB 세션 주입
 ):
     """
     사용자의 공감 메시지를 AI로 평가하는 API + user별로 기록을 DB에 저장
     """
 
+    # 서비스 호출 (body + access_token + session 전달)
     result = await evaluate_empathy_message_service(
         body=body,
+        token=access_token,
+        session=session
     )
 
-    score = result["score"]
-    feedback = result["feedback"]
-
-    # 2) DB 저장 -> 이게 맞나 몰겠다..
-    history = EmpathyTrainingResult(
-        user_id=user.id,
-        emotion_label=body.emotion,       # EmotionLabel enum
-        scenario_text=body.scenario,      # 시나리오 텍스트
-        user_reply=body.userMessage,      # 사용자가 작성한 메시지
-        empathy_score=score,              # 점수
-        feedback=feedback                 # 피드백
-    )
-
-    session.add(history)
-    session.commit()
-
-    #응답
+    # 서비스에서 score + feedback 반환됨
     return EmpathyEvaluateResponse(
         score=result["score"],
         feedback=result["feedback"]
