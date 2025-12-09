@@ -12,3 +12,6 @@ cryptography
 python-jose[cryptography]
 sqlmodel
 cachetools>=5,<6
+chromadb
+pandas
+openpyxl
