@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import auth, user, emotion_image_router, emotion_empathy_router
+from app.routers import auth, emotion_voice_router, user, emotion_image_router, emotion_empathy_router
 from app.db.init_db import init_db
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
@@ -35,6 +35,7 @@ app.include_router(user.router)
 app.include_router(emotion_image_router.router)
 app.include_router(emotion_quiz_router.router)
 app.include_router(emotion_empathy_router.router)
+app.include_router(emotion_voice_router.router)
 
 # 루트 라우트 추가 -> 테스트용
 @app.get("/")
