@@ -11,7 +11,7 @@ class EmpathyEvaluateResult(SQLModel, table=True):
     # 사용자 ID (nullable)
     # user_id: Optional[int] = Field(default=None, foreign_key="user.id")
 
-    # 평가한 시나리오
+    # 생성된 시나리오
     scenario: str = Field(nullable=False)
 
     # 사용자가 입력한 메시지

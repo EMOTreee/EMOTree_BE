@@ -18,7 +18,7 @@ class AiMonthlyReport(SQLModel, table=True):
     label_month: int | None = Field(nullable=False, default=None)
 
     quiz_analysis: str = Field(nullable=False)        
-    empathy_analysis: str = Field(nullable=False)     
+    empathy_analysis: str = Field(nullable=False) # 감정공감은 이걸 써야 하나보다    
     expression_analysis: str = Field(nullable=False)  
 
     created_at: datetime = Field(default_factory=now_kst, nullable=False)
