@@ -6,6 +6,7 @@ from fastapi import Request
 from sqlmodel import Session
 from openai import OpenAI
 from dotenv import load_dotenv
+import chromadb
 
 from app.models.enums import EmotionLabel
 from app.schemas.emotion_empathy_schema import (
@@ -14,6 +15,7 @@ from app.schemas.emotion_empathy_schema import (
 )
 from app.utils.jwt_provider import verify_access_token
 from app.models.empathy_training_result import EmpathyTrainingResult
+from app.models.empathy_type import EmpathyType
 
 #서비스
 
@@ -161,9 +163,21 @@ async def evaluate_empathy_message_service(
         if payload:
             user_id = int(payload.get("sub"))  
 
+
+    predicted_label = None
+    
     # 🔥 user_id 있으면 DB 저장
     if user_id:
-        history = EmpathyTrainingResult(
+        predicted_label = classify_empathy(client, user_message)
+        type_history = EmpathyType(
+            user_id=user_id,
+            empathy_category=predicted_label
+        )
+        session.add(type_history)
+        session.commit()
+        session.refresh(type_history)
+        
+        training_history = EmpathyTrainingResult(
             user_id=user_id,
             emotion_label=emotion,
             scenario_text=scenario,
@@ -171,13 +185,37 @@ async def evaluate_empathy_message_service(
             empathy_score = score,
             feedback=feedback
         )
-        session.add(history)
+        session.add(training_history)
         session.commit()
-        session.refresh(history)
+        session.refresh(training_history)
 
     # 점수와 gpt피드백 최종 반환
     return {
-    "score": score,
-    "feedback": feedback
-}
+        "score": score,
+        "feedback": feedback
+    }
 
+
+def embed(client:OpenAI, text: str):
+    resp = client.embeddings.create(
+        model="text-embedding-3-large",
+        input=text,
+    )
+    return resp.data[0].embedding
+
+# 👉 이미 만들어진 DB만 사용 (인덱싱은 다른 파일에서)
+chroma_client = chromadb.PersistentClient(path="./chroma/db")
+collection = chroma_client.get_or_create_collection(
+    name="empathy_training",
+)
+
+def classify_empathy(client:OpenAI, user_text: str) -> str:
+    user_vec = embed(client, user_text)
+
+    results = collection.query(
+        query_embeddings=[user_vec],
+        n_results=5,
+    )
+
+    labels = [m["label"] for m in results["metadatas"][0]]
+    return max(set(labels), key=labels.count)

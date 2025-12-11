@@ -8,3 +8,7 @@ class EmotionLabel(str, Enum):
     SURPRISE = "SURPRISE"
     ANXIETY = "ANXIETY"
     NEUTRAL = "NEUTRAL"
+
+class EmpathyCategory(str, Enum):
+    EMOTIONAL = "EMOTIONAL"
+    COGNITIVE = "COGNITIVE"
