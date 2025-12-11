@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from app.routers import emotion_quiz_router
 from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
+from app.utils.scheduler import start_scheduler
 
 load_dotenv()
 
@@ -14,6 +15,8 @@ load_dotenv()
 async def lifespan(app: FastAPI):
     # startup
     init_db()
+    start_scheduler() 
+    print("스케줄러 시작")
     yield
     # shutdown
 
