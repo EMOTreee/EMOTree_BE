@@ -23,11 +23,14 @@ async def analyze_voice_emotion(
     # 음성 파일 읽기
     audio_bytes = await file.read()
     
+    # 로그인한 경우에만 user_id 전달
+    user_id = current_user.id if current_user else None
+    
     # 음성 감정 분석 서비스 호출
     result = await analyze_voice_emotion_service(
         audio_bytes=audio_bytes,
         target_emotion=targetEmotion,
-        user_id=current_user.id,
+        user_id=user_id,
         session=session,
         reset_flag=resetFlag,
     )
