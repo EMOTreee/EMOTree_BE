@@ -7,3 +7,4 @@ class EmotionLabel(str, Enum):
     SADNESS = "SADNESS"
     SURPRISE = "SURPRISE"
     ANXIETY = "ANXIETY"
+    NEUTRAL = "NEUTRAL"

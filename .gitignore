@@ -5,3 +5,8 @@ EMOTree_env
 
 .env
 .venv
+
+# HuggingFace 모델 폴더 전체 
+models/*
+# 대본 파일들
+transcripts
