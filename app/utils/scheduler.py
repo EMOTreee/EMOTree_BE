@@ -68,8 +68,8 @@ def run_monthly_report_job():
             # DB 저장
             report = AiMonthlyReport(
                 user_id=user.id,
-                label_year=prev_year,
-                label_month=prev_month,
+                label_year=last_year,
+                label_month=last_month,
                 quiz_analysis=quiz_analysis,
                 empathy_analysis=empathy_analysis,
                 expression_analysis=expression_analysis,
