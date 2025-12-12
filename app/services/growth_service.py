@@ -33,9 +33,15 @@ def get_monthly_stat(model, user_id: int, year: int, month: int, session: Sessio
     query = (
         session.query(
             emotion_field,
-            func.avg(model.empathy_score if hasattr(model, "empathy_score") else
-                     model.expression_score if hasattr(model, "expression_score") else
-                     func.cast(model.is_correct, Float)).label("avg_score")
+            (
+                func.avg(
+                    model.empathy_score
+                    if hasattr(model, "empathy_score")
+                    else model.expression_score
+                    if hasattr(model, "expression_score")
+                    else func.cast(model.is_correct, Float) * 100
+                )
+            ).label("avg_score")
         )
         .filter(model.user_id == user_id)
         .filter(model.created_at >= start_date)
