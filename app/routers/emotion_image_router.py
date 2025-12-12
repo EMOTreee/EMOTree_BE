@@ -1,5 +1,4 @@
-from fastapi import APIRouter, UploadFile, Form, File, Request, Depends, Cookie
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, UploadFile, Form, File, Depends, Cookie
 
 from sqlmodel import Session
 from app.routers.dependencies import get_db as get_session

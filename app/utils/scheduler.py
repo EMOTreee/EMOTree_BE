@@ -38,7 +38,7 @@ def run_monthly_report_job():
                 select(AiMonthlyReport).where(
                     AiMonthlyReport.user_id == user.id,
                     AiMonthlyReport.label_year == last_year,
-                    AiMonthlyReport.label_month == prev_month
+                    AiMonthlyReport.label_month == last_month
                 )
             ).first()
 
@@ -90,4 +90,4 @@ def start_scheduler():
         replace_existing=True,
     )
     scheduler.start()
-    run_monthly_report_job()
+    # run_monthly_report_job()
