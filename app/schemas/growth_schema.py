@@ -28,9 +28,13 @@ class EmpathyCategory(str, Enum):
     EMOTIONAL = "EMOTIONAL"
     COGNITIVE = "COGNITIVE"
 
+class EmpathyRatio(BaseModel):
+    emotional: float
+    cognitive: float
+
 class EmpathyTypeWithRatio(BaseModel):
     type: EmpathyCategory
-    ratio: float 
+    ratios: EmpathyRatio
 
 # 데이터 모델
 class GrowthData(BaseModel):

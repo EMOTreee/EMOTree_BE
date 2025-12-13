@@ -106,7 +106,6 @@ def get_last_month_report(user_id: int, session: Session):
     )
 
 def get_user_empathy_type(user_id: int, session: Session):
-    # EMOTIONAL, COGNITIVE 각각 개수 조회
     counts = (
         session.query(
             EmpathyType.empathy_category,
@@ -117,23 +116,29 @@ def get_user_empathy_type(user_id: int, session: Session):
         .all()
     )
 
-    total = sum(count for _, count in counts) or 1  # 0으로 나누는 것 방지
-    ratio_map = {EmpathyCategory.EMOTIONAL: 0.0, EmpathyCategory.COGNITIVE: 0.0}
+    total = sum(count for _, count in counts) or 1
+
+    ratio_map = {
+        EmpathyCategory.EMOTIONAL: 0.0,
+        EmpathyCategory.COGNITIVE: 0.0,
+    }
 
     for category, count in counts:
         ratio_map[category] = count / total
 
     if ratio_map[EmpathyCategory.EMOTIONAL] >= ratio_map[EmpathyCategory.COGNITIVE]:
         dominant_type = EmpathyCategory.EMOTIONAL
-        ratio = ratio_map[EmpathyCategory.EMOTIONAL]
     else:
         dominant_type = EmpathyCategory.COGNITIVE
-        ratio = ratio_map[EmpathyCategory.COGNITIVE]
 
     return {
         "type": dominant_type,
-        "ratio": round(ratio, 2)  # 소수점 2자리
+        "ratios": {
+            "emotional": round(ratio_map[EmpathyCategory.EMOTIONAL], 2),
+            "cognitive": round(ratio_map[EmpathyCategory.COGNITIVE], 2),
+        }
     }
+
 
 def get_full_report(user_id: int, session: Session):
     growth_data = get_growth_data(user_id, session)
