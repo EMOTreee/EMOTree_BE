@@ -170,7 +170,7 @@ def pick_dalle(openai_client, emotion: EmotionLabel | None = None) -> Tuple[str,
     
     # OpenAI 이미지 생성
     png_b64 = openai_client.images.generate(
-        model="gpt-image-1",
+        model="gpt-image-1-mini",
         prompt=prompt,
         size="1024x1024",
         quality="low",
