@@ -173,6 +173,7 @@ def pick_dalle(openai_client, emotion: EmotionLabel | None = None) -> Tuple[str,
         model="gpt-image-1",
         prompt=prompt,
         size="1024x1024",
+        quality="low",
         n=1,
     ).data[0].b64_json
 
