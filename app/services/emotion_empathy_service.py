@@ -33,7 +33,7 @@ async def create_empathy_scenario_service(
 
     # Emotion이 RANDOM이면 랜덤 선택
     if query.option == EmotionLabel.RANDOM:
-        emotions = [e for e in EmotionLabel if e != EmotionLabel.RANDOM]
+        emotions = [e for e in EmotionLabel if e not in (EmotionLabel.RANDOM, EmotionLabel.NEUTRAL)]
         chosen_emotion = random.choice(emotions)
     else:
         chosen_emotion = query.option

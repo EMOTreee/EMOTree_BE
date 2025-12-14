@@ -89,7 +89,7 @@ def _summary_for(emotion: EmotionLabel) -> str:
             전체적으로 얼굴과 목 주변 근육이 긴장되어 있어 몸도 함께 경직된 듯한 인상을 줍니다."""
         ),
     }
-    return s[emotion]
+    return s[emotion.value]
 
 
 def _analyze_emotion_features_from_base64(
@@ -149,7 +149,7 @@ def _analyze_emotion_features_from_base64(
 
 
 def pick_static(openai_client) -> Tuple[str, EmotionLabel, str]:
-    emotions = [e for e in EmotionLabel if e != "RANDOM"]
+    emotions = [e for e in EmotionLabel if e not in (EmotionLabel.RANDOM, EmotionLabel.NEUTRAL)]
     emotion = random.choice(emotions)
     folder_path = os.path.join(settings.IMAGE_ROOT, emotion)
 
@@ -191,10 +191,7 @@ def pick_static(openai_client) -> Tuple[str, EmotionLabel, str]:
 
 def pick_dalle(openai_client, emotion: EmotionLabel | None = None) -> Tuple[str, EmotionLabel, str]:
     if emotion is None:
-        emotion = random.choice([
-            e for e in EmotionLabel
-            if e != EmotionLabel.RANDOM
-        ])
+        emotion = random.choice([e for e in EmotionLabel if e not in (EmotionLabel.RANDOM, EmotionLabel.NEUTRAL)])
     prompt = _prompt_for(emotion)
 
     # OpenAI 이미지 생성
