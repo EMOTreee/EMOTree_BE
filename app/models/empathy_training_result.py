@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional, TYPE_CHECKING
 
 from sqlmodel import SQLModel, Field, Column, Relationship
-from sqlalchemy import Enum as SqlEnum
+from sqlalchemy import Enum as SqlEnum, Text
 
 from app.utils.time import now_kst
 from app.models.enums import EmotionLabel
@@ -24,7 +24,7 @@ class EmpathyTrainingResult(SQLModel, table=True):
     scenario_text: str = Field(nullable=False)
     user_reply: str = Field(nullable=False)
     empathy_score: int = Field(nullable=False)
-    feedback: str = Field(nullable=False)
+    feedback: str = Field(sa_column=Column(Text, nullable=False))
 
     created_at: datetime = Field(default_factory=now_kst, nullable=False)
 

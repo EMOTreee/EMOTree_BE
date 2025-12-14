@@ -1,7 +1,9 @@
 from datetime import datetime
 from typing import Optional, TYPE_CHECKING
 
-from sqlmodel import SQLModel, Field, Relationship
+from sqlalchemy import Text
+
+from sqlmodel import SQLModel, Field, Column, Relationship
 from app.utils.time import now_kst
 
 if TYPE_CHECKING:
@@ -17,9 +19,10 @@ class AiMonthlyReport(SQLModel, table=True):
     label_year: int | None = Field(nullable=False, default=None)
     label_month: int | None = Field(nullable=False, default=None)
 
-    quiz_analysis: str = Field(nullable=False)        
-    empathy_analysis: str = Field(nullable=False) # 감정공감은 이걸 써야 하나보다    
-    expression_analysis: str = Field(nullable=False)  
+
+    quiz_analysis: str = Field(sa_column=Column(Text, nullable=True))
+    empathy_analysis: str = Field(sa_column=Column(Text, nullable=True))
+    expression_analysis: str = Field(sa_column=Column(Text, nullable=True))
 
     created_at: datetime = Field(default_factory=now_kst, nullable=False)
 

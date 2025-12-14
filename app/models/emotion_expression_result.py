@@ -27,6 +27,7 @@ class EmotionExpressionResult(SQLModel, table=True):
 
     expression_score: int = Field(nullable=False)
     feedback: str = Field(sa_column=Column(Text, nullable=False))
+
     created_at: datetime = Field(default_factory=now_kst, nullable=False)
 
     user: Optional["User"] = Relationship(back_populates="emotion_expression_results")

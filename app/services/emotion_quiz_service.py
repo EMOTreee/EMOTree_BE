@@ -89,7 +89,7 @@ def _summary_for(emotion: EmotionLabel) -> str:
             전체적으로 얼굴과 목 주변 근육이 긴장되어 있어 몸도 함께 경직된 듯한 인상을 줍니다."""
         ),
     }
-    return s[emotion]
+    return s[emotion.value]
 
 
 def _analyze_emotion_features_from_base64(
@@ -107,37 +107,49 @@ def _analyze_emotion_features_from_base64(
     if openai_client is None:
         return _summary_for(emotion)
 
-    prompt = (
-        "다음 인물 사진에서 표정과 얼굴의 구체적인 특징을 기반으로, "
-        f"'{emotion.name}' 감정이 드러나는 시각적 단서를 2~3문장으로 한국어로 설명해줘.\n"
-        "- 감정 이름(기쁨, 분노 등)을 직접 말하기보다는, "
-        "입꼬리, 눈 모양, 시선, 주름, 어깨/자세 같은 구체적인 특징을 중심으로 설명해줘.\n"
-        "- 예: '입꼬리가 아래로 처지고 눈꺼풀이 무겁게 내려앉은 모습은, 마음속 무거움이 얼굴 표정에 고스란히 묻어날 때 보이는 특징입니다. 시선이 쉽게 떨어지고 눈가의 근육이 힘없이 풀려 있는 모습이, 감정이 전반적으로 가라앉아 있음을 드러냅니다.' 이런 식으로."
-    )
+    system_prompt = """
+    당신은 얼굴 표정과 신체 자세를 기반으로 감정의 시각적 단서를 설명하는 전문가입니다.
+
+    규칙:
+    - 감정 이름(기쁨, 분노 등)을 직접 언급하지 말 것.
+    - 입꼬리, 눈 모양, 시선, 얼굴 근육, 주름, 어깨나 자세 등
+    구체적인 시각적 특징을 중심으로 설명할 것.
+    - 설명은 2~3문장의 한국어 문장으로 작성할 것.
+    - 해석은 단정적이지 않고 관찰 기반으로 서술할 것.
+    - 예: '입꼬리가 아래로 처지고 눈꺼풀이 무겁게 내려앉은 모습은, 마음속 무거움이 얼굴 표정에 고스란히 묻어날 때 보이는 특징입니다. 시선이 쉽게 떨어지고 눈가의 근육이 힘없이 풀려 있는 모습이, 감정이 전반적으로 가라앉아 있음을 드러냅니다.'
+    """
+
+    user_prompt = f"""
+    다음 인물 이미지에서,
+    '{emotion.name}' 감정이 드러난다고 볼 수 있는 시각적 단서를 설명해주세요.
+    """
 
     resp = openai_client.responses.create(
-        model="gpt-4.1-mini",  # vision 지원되는 경량 모델 가정
+        model="gpt-4o-mini",  # vision 지원되는 경량 모델 가정
         input=[
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "input_text",
-                        "text": prompt,
-                    },
-                    {
-                        "type": "input_image",
-                        "image_url": f"data:{mime};base64,{b64_image}",
-                    },
-                ],
-            }
-        ],
+        {
+            "role": "system",
+            "content": system_prompt,
+        },
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "input_text",
+                    "text": user_prompt,
+                },
+                {
+                    "type": "input_image",
+                    "image_url": f"data:{mime};base64,{b64_image}",
+                },
+            ],
+        }],
     )
     return resp.output_text.strip()
 
 
 def pick_static(openai_client) -> Tuple[str, EmotionLabel, str]:
-    emotions = [e for e in EmotionLabel if e != "RANDOM"]
+    emotions = [e for e in EmotionLabel if e not in (EmotionLabel.RANDOM, EmotionLabel.NEUTRAL)]
     emotion = random.choice(emotions)
     folder_path = os.path.join(settings.IMAGE_ROOT, emotion)
 
@@ -179,15 +191,15 @@ def pick_static(openai_client) -> Tuple[str, EmotionLabel, str]:
 
 def pick_dalle(openai_client, emotion: EmotionLabel | None = None) -> Tuple[str, EmotionLabel, str]:
     if emotion is None:
-        emotion = random.choice(list(EmotionLabel))
-
+        emotion = random.choice([e for e in EmotionLabel if e not in (EmotionLabel.RANDOM, EmotionLabel.NEUTRAL)])
     prompt = _prompt_for(emotion)
 
     # OpenAI 이미지 생성
     png_b64 = openai_client.images.generate(
-        model="gpt-image-1",
+        model="gpt-image-1-mini",
         prompt=prompt,
         size="1024x1024",
+        quality="low",
         n=1,
     ).data[0].b64_json
 

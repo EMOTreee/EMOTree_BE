@@ -6,6 +6,7 @@ from fastapi import Request
 from sqlmodel import Session
 from openai import OpenAI
 from dotenv import load_dotenv
+import chromadb
 
 from app.models.enums import EmotionLabel
 from app.schemas.emotion_empathy_schema import (
@@ -14,6 +15,7 @@ from app.schemas.emotion_empathy_schema import (
 )
 from app.utils.jwt_provider import verify_access_token
 from app.models.empathy_training_result import EmpathyTrainingResult
+from app.models.empathy_type import EmpathyType
 
 #서비스
 
@@ -31,7 +33,7 @@ async def create_empathy_scenario_service(
 
     # Emotion이 RANDOM이면 랜덤 선택
     if query.option == EmotionLabel.RANDOM:
-        emotions = [e for e in EmotionLabel if e != EmotionLabel.RANDOM]
+        emotions = [e for e in EmotionLabel if e not in (EmotionLabel.RANDOM, EmotionLabel.NEUTRAL)]
         chosen_emotion = random.choice(emotions)
     else:
         chosen_emotion = query.option
@@ -103,32 +105,35 @@ async def evaluate_empathy_message_service(
     # -----------------------------
     # 🔥 Prompt 설계
     # -----------------------------
-    prompt = f"""
-    당신은 "공감 능력 코칭 전문가"입니다.
+    system_prompt = """
+    당신은 공감 능력 코칭 전문가입니다.
 
-    아래 시나리오 상황과 사용자의 공감 메시지를 평가해주세요.
+    아래 시나리오와 사용자의 공감 메시지를 평가한 뒤,
+    반드시 아래 JSON 형식으로만 출력하세요:
 
+    {
+    "score": 0~100,
+    "feedback": "한국어 상세 피드백"
+    }
+
+    규칙:
+    1. score는 0에서 100 사이의 숫자만 출력할 것.
+    2. feedback에는 다음을 포함할 것:
+    - 공감이 잘 된 부분
+    - 개선을 위한 구체적인 조언
+    - 만약 부족한 부분이 있다면 부족한 부분도 포함
+    4. 전체 피드백은 친절하고 코칭하듯 작성할 것.
+    5. JSON 이외의 내용은 절대 출력하지 말 것.
+    6. 코드블록 사용 금지.
+    7. 한국어만 사용할 것.
+    """
+    
+    user_prompt = f"""
     시나리오:
     "{scenario}"
 
     사용자의 메시지:
     "{user_message}"
-
-    출력(JSON) 형식:
-    {{
-        "score": 0~100 숫자,
-        "feedback": "한국어 상세 피드백"
-    }}
-
-    규칙:
-    1. score는 숫자만.
-    2. feedback은 다음 내용을 포함할 것:
-        - 공감이 잘 된 부분
-        - 부족한 부분
-        - 개선을 위한 구체적 조언
-    3. 전체 피드백은 친절하게.
-    4. JSON만 출력, 코드블록 금지.
-    5. 한국어만 사용.
     """
 
     # -----------------------------
@@ -137,7 +142,8 @@ async def evaluate_empathy_message_service(
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "user", "content": prompt}
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
         ]
     )
 
@@ -161,9 +167,21 @@ async def evaluate_empathy_message_service(
         if payload:
             user_id = int(payload.get("sub"))  
 
+
+    predicted_label = None
+    
     # 🔥 user_id 있으면 DB 저장
     if user_id:
-        history = EmpathyTrainingResult(
+        predicted_label = classify_empathy(client, user_message)
+        type_history = EmpathyType(
+            user_id=user_id,
+            empathy_category=predicted_label
+        )
+        session.add(type_history)
+        session.commit()
+        session.refresh(type_history)
+        
+        training_history = EmpathyTrainingResult(
             user_id=user_id,
             emotion_label=emotion,
             scenario_text=scenario,
@@ -171,13 +189,37 @@ async def evaluate_empathy_message_service(
             empathy_score = score,
             feedback=feedback
         )
-        session.add(history)
+        session.add(training_history)
         session.commit()
-        session.refresh(history)
+        session.refresh(training_history)
 
     # 점수와 gpt피드백 최종 반환
     return {
-    "score": score,
-    "feedback": feedback
-}
+        "score": score,
+        "feedback": feedback
+    }
 
+
+def embed(client:OpenAI, text: str):
+    resp = client.embeddings.create(
+        model="text-embedding-3-large",
+        input=text,
+    )
+    return resp.data[0].embedding
+
+# 👉 이미 만들어진 DB만 사용 (인덱싱은 다른 파일에서)
+chroma_client = chromadb.PersistentClient(path="./chroma/db")
+collection = chroma_client.get_or_create_collection(
+    name="empathy_training",
+)
+
+def classify_empathy(client:OpenAI, user_text: str) -> str:
+    user_vec = embed(client, user_text)
+
+    results = collection.query(
+        query_embeddings=[user_vec],
+        n_results=5,
+    )
+
+    labels = [m["label"] for m in results["metadatas"][0]]
+    return max(set(labels), key=labels.count)

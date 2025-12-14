@@ -7,6 +7,7 @@ from app.models.ai_monthly_report import AiMonthlyReport
 from app.models.emotion_expression_result import EmotionExpressionResult
 from app.models.emotion_quiz_result import EmotionQuizResult
 from app.models.empathy_training_result import EmpathyTrainingResult
+from app.models.empathy_type import EmpathyType
 
 
 class User(SQLModel, table=True):
@@ -35,5 +36,8 @@ class User(SQLModel, table=True):
         back_populates="user"
     )
     ai_monthly_reports: List["AiMonthlyReport"] = Relationship(
+        back_populates="user"
+    )
+    empathy_type: List["EmpathyType"] = Relationship(
         back_populates="user"
     )
