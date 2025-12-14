@@ -498,15 +498,8 @@ def build_voice_emotion_pipeline():
             print(f"[ERROR] 파이프라인 실행 실패: {e}")
             import traceback
             traceback.print_exc()
-            # 기본값 반환
-            return {
-                "targetEmotion": target_emotion,
-                "detectedEmotion": "NEUTRAL",
-                "detectedEmotionTop3": [{"emotion": "NEUTRAL", "confidence": 0.0}],
-                "score": 50,
-                "feedback": "평가 중 오류가 발생했습니다. 다시 시도해주세요.",
-                "isCorrect": False
-            }
+            # 예외를 다시 발생시켜 상위 레이어에서 처리하도록 함
+            raise
     
     return pipeline
 
