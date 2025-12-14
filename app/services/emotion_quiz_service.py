@@ -1,11 +1,17 @@
 import base64, os, random, uuid, time
 from typing import Literal, Tuple
+
 from cachetools import TTLCache
-from app.models.enums import EmotionLabel
+from sqlmodel import Session
+
 from app.core.config import settings
+from app.models.enums import EmotionLabel
+from app.models.emotion_quiz_result import EmotionQuizResult
+from app.utils.jwt_provider import verify_access_token
 
 # 캐시: 1000문항, TTL 30분
-_quiz_cache: TTLCache = TTLCache(maxsize=1000, ttl=60*30)
+_quiz_cache: TTLCache = TTLCache(maxsize=1000, ttl=60 * 30)
+
 
 def _save_base64_image(b64_png: str, emotion: EmotionLabel) -> str:
     # static/images/GENERATED/<emotion>/<uuid>.png
@@ -21,6 +27,7 @@ def _save_base64_image(b64_png: str, emotion: EmotionLabel) -> str:
     rel_dir = f"GENERATED/{emotion.value}"
     image_url = f"{settings.SERVER_URL}/static/images/{rel_dir}/{name}"
     return image_url
+
 
 def _prompt_for(emotion: EmotionLabel) -> str:
     m = {
@@ -54,6 +61,7 @@ def _prompt_for(emotion: EmotionLabel) -> str:
         "Neutral background, natural skin tone, no distortion or excessive stylization."
     )
 
+
 def _summary_for(emotion: EmotionLabel) -> str:
     s = {
         EmotionLabel.JOY: (
@@ -83,6 +91,7 @@ def _summary_for(emotion: EmotionLabel) -> str:
     }
     return s[emotion]
 
+
 def _analyze_emotion_features_from_base64(
     openai_client,
     b64_image: str,
@@ -94,7 +103,7 @@ def _analyze_emotion_features_from_base64(
     '어떤 표정/얼굴 특징 때문에 이 감정처럼 보이는지'를 한국어로 설명.
     """
 
-    # 수정: client 없으면 그냥 기존 요약으로 fallback
+    # client 없으면 그냥 기존 요약으로 fallback
     if openai_client is None:
         return _summary_for(emotion)
 
@@ -108,24 +117,26 @@ def _analyze_emotion_features_from_base64(
 
     resp = openai_client.responses.create(
         model="gpt-4.1-mini",  # vision 지원되는 경량 모델 가정
-        input=[{
-            "role": "user",
-            "content": [
-                {
-                    "type": "input_text",
-                    "text": prompt,
-                },
-                {
-                    "type": "input_image",
-                    "image_url": f"data:{mime};base64,{b64_image}",
-                },
-            ],
-        }],
+        input=[
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "input_text",
+                        "text": prompt,
+                    },
+                    {
+                        "type": "input_image",
+                        "image_url": f"data:{mime};base64,{b64_image}",
+                    },
+                ],
+            }
+        ],
     )
     return resp.output_text.strip()
 
-def pick_static(openai_client) -> Tuple[str, EmotionLabel, str]:
 
+def pick_static(openai_client) -> Tuple[str, EmotionLabel, str]:
     emotions = [e for e in EmotionLabel if e != "RANDOM"]
     emotion = random.choice(emotions)
     folder_path = os.path.join(settings.IMAGE_ROOT, emotion)
@@ -144,16 +155,18 @@ def pick_static(openai_client) -> Tuple[str, EmotionLabel, str]:
         # 이미지가 없으면 fallback
         return ("/static/images/placeholder.png", emotion, _summary_for(emotion))
 
-    # 4) 이미지 랜덤 선택
+    # 이미지 랜덤 선택
     chosen = random.choice(files)
     abs_path = os.path.join(folder_path, chosen)
     image_url = f"{settings.SERVER_URL}/static/images/GENERATED/{emotion.name}/{chosen}"
 
     with open(abs_path, "rb") as f:
-            png_b64 = base64.b64encode(f.read()).decode("utf-8")
+        png_b64 = base64.b64encode(f.read()).decode("utf-8")
 
-    summary = _summary_for(emotion)     # 비용 문제로 임시 수정
+    # 비용 문제로 임시 요약만 사용
+    summary = _summary_for(emotion)
 
+    # 필요하면 Vision 분석 사용
     # summary = _analyze_emotion_features_from_base64(
     #     openai_client=openai_client,
     #     b64_image=png_b64,
@@ -163,11 +176,13 @@ def pick_static(openai_client) -> Tuple[str, EmotionLabel, str]:
 
     return (image_url, emotion, summary)
 
+
 def pick_dalle(openai_client, emotion: EmotionLabel | None = None) -> Tuple[str, EmotionLabel, str]:
     if emotion is None:
         emotion = random.choice(list(EmotionLabel))
+
     prompt = _prompt_for(emotion)
-    
+
     # OpenAI 이미지 생성
     png_b64 = openai_client.images.generate(
         model="gpt-image-1",
@@ -177,7 +192,7 @@ def pick_dalle(openai_client, emotion: EmotionLabel | None = None) -> Tuple[str,
     ).data[0].b64_json
 
     rel_url = _save_base64_image(png_b64, emotion)
-    
+
     summary = _analyze_emotion_features_from_base64(
         openai_client=openai_client,
         b64_image=png_b64,
@@ -187,24 +202,79 @@ def pick_dalle(openai_client, emotion: EmotionLabel | None = None) -> Tuple[str,
 
     return (rel_url, emotion, summary)
 
+
 def generate_question(
-    source: Literal["STATIC","DALLE"]="STATIC", 
-    openai_client=None
+    source: Literal["STATIC", "DALLE"] = "STATIC",
+    openai_client=None,
 ):
     if source == "DALLE" and openai_client is not None:
         image_url, answer, summary = pick_dalle(openai_client)
     else:
         image_url, answer, summary = pick_static(openai_client)
-    
+
     qid = uuid.uuid4().hex
     _quiz_cache[qid] = {"answer": answer, "ts": time.time(), "summary": summary}
     return qid, image_url, summary
 
-def grade(question_id: str, user_answer: EmotionLabel):
+
+def grade(question_id: str, user_answer: EmotionLabel) -> Tuple[bool, EmotionLabel, str] | None:
     data = _quiz_cache.get(question_id)
     if not data:
-        return None  # 만료됨
+        return None  # 만료됨 / 존재하지 않음
+
     correct = data["answer"]
     is_correct = (user_answer == correct)
     feedback = data["summary"]
     return is_correct, correct, feedback
+
+
+# ---------------------------------------------------------
+# 제출 + DB 저장 서비스 (로그인 상태일 때만 기록)
+# ---------------------------------------------------------
+async def submit_emotion_quiz_service(
+    *,
+    quiz_id: str,
+    user_answer: EmotionLabel,
+    token: str | None,
+    session: Session,
+):
+    """
+    - quiz_id / user_answer로 채점
+    - access_token이 유효하면 EmotionQuizResult 테이블에 저장
+    - 프론트 응답 형식: QuizSubmitResponse와 동일
+    """
+
+    graded = grade(quiz_id, user_answer)
+    if graded is None:
+        # 캐시에서 사라진 경우 (TTL 만료 등)
+        raise ValueError("유효하지 않거나 만료된 퀴즈입니다.")
+
+    is_correct, correct_emotion, feedback = graded
+
+    # access_token → user_id 파싱
+    user_id: int | None = None
+    if token:
+        payload = verify_access_token(token)
+        if payload:
+            try:
+                user_id = int(payload.get("sub"))
+            except (TypeError, ValueError):
+                user_id = None
+
+    # 로그인 상태면 결과 DB 저장
+    if user_id is not None:
+        record = EmotionQuizResult(
+            user_id=user_id,
+            emotion_label=correct_emotion,
+            is_correct=is_correct,
+        )
+        session.add(record)
+        session.commit()
+        session.refresh(record)
+
+    # QuizSubmitResponse 스펙에 맞춰 반환
+    return {
+        "isCorrect": is_correct,
+        "correctEmotion": correct_emotion,
+        "feedback": feedback,
+    }
