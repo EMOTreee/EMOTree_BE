@@ -3,6 +3,7 @@ from io import BytesIO
 import subprocess
 import tempfile
 import os
+from fastapi import HTTPException
 
 from app.services.voice_emotion_chains import voice_emotion_pipeline
 from app.schemas.emotion_voice_schema import VoiceEmotionResponse
@@ -75,37 +76,48 @@ async def analyze_voice_emotion_service(
     reset_flag: bool = False
 ) -> VoiceEmotionResponse:
     
-    # WEBM을 WAV로 변환
-    wav_audio_bytes = convert_webm_to_wav(audio_bytes)
-    
-    # 파이프라인 실행 (user_id와 reset_flag 전달)
-    # 비로그인 사용자는 user_id=0으로 메모리 관리
-    pipeline_user_id = user_id if user_id else 0
-    result = voice_emotion_pipeline(wav_audio_bytes, target_emotion, pipeline_user_id, reset_flag)
-    
-    # EmotionLabel enum으로 변환
-    target_emotion_enum = EmotionLabel[result["targetEmotion"]]
-    detected_emotion_enum = EmotionLabel[result["detectedEmotion"]]
-    
-    # 로그인한 경우에만 DB에 결과 저장
-    if user_id:
-        emotion_result = EmotionExpressionResult(
-            user_id=user_id,
-            target_emotion=target_emotion_enum,
-            detected_emotion=detected_emotion_enum,
-            expression_score=result["score"],
-            feedback=result["feedback"]
+    try:
+        # WEBM을 WAV로 변환
+        wav_audio_bytes = convert_webm_to_wav(audio_bytes)
+        
+        # 파이프라인 실행 (user_id와 reset_flag 전달)
+        # 비로그인 사용자는 user_id=0으로 메모리 관리
+        pipeline_user_id = user_id if user_id else 0
+        result = voice_emotion_pipeline(wav_audio_bytes, target_emotion, pipeline_user_id, reset_flag)
+        
+        # EmotionLabel enum으로 변환
+        target_emotion_enum = EmotionLabel[result["targetEmotion"]]
+        detected_emotion_enum = EmotionLabel[result["detectedEmotion"]]
+        
+        # 로그인한 경우에만 DB에 결과 저장
+        if user_id:
+            emotion_result = EmotionExpressionResult(
+                user_id=user_id,
+                target_emotion=target_emotion_enum,
+                detected_emotion=detected_emotion_enum,
+                expression_score=result["score"],
+                feedback=result["feedback"]
+            )
+            
+            create_emotion_expression_result(session=session, emotion_result=emotion_result)
+        
+        # 응답 스키마 생성
+        response = VoiceEmotionResponse(
+            targetEmotion=target_emotion_enum,
+            detectedEmotion=detected_emotion_enum,
+            score=result["score"],
+            feedback=result["feedback"],
+            isCorrect=result["isCorrect"]
         )
         
-        create_emotion_expression_result(session=session, emotion_result=emotion_result)
+        return response
     
-    # 응답 스키마 생성
-    response = VoiceEmotionResponse(
-        targetEmotion=target_emotion_enum,
-        detectedEmotion=detected_emotion_enum,
-        score=result["score"],
-        feedback=result["feedback"],
-        isCorrect=result["isCorrect"]
-    )
-    
-    return response
+    except Exception as e:
+        print(f"[ERROR] 음성 감정 분석 실패: {e}")
+        import traceback
+        traceback.print_exc()
+        # DB 저장하지 않고 에러 응답
+        raise HTTPException(
+            status_code=500,
+            detail="음성 감정 분석 중 오류가 발생했습니다"
+        )
