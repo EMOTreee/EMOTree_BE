@@ -105,32 +105,35 @@ async def evaluate_empathy_message_service(
     # -----------------------------
     # 🔥 Prompt 설계
     # -----------------------------
-    prompt = f"""
-    당신은 "공감 능력 코칭 전문가"입니다.
+    system_prompt = """
+    당신은 공감 능력 코칭 전문가입니다.
 
-    아래 시나리오 상황과 사용자의 공감 메시지를 평가해주세요.
+    아래 시나리오와 사용자의 공감 메시지를 평가한 뒤,
+    반드시 아래 JSON 형식으로만 출력하세요:
 
+    {
+    "score": 0~100,
+    "feedback": "한국어 상세 피드백"
+    }
+
+    규칙:
+    1. score는 0에서 100 사이의 숫자만 출력할 것.
+    2. feedback에는 다음을 포함할 것:
+    - 공감이 잘 된 부분
+    - 개선을 위한 구체적인 조언
+    - 만약 부족한 부분이 있다면 부족한 부분도 포함
+    4. 전체 피드백은 친절하고 코칭하듯 작성할 것.
+    5. JSON 이외의 내용은 절대 출력하지 말 것.
+    6. 코드블록 사용 금지.
+    7. 한국어만 사용할 것.
+    """
+    
+    user_prompt = f"""
     시나리오:
     "{scenario}"
 
     사용자의 메시지:
     "{user_message}"
-
-    출력(JSON) 형식:
-    {{
-        "score": 0~100 숫자,
-        "feedback": "한국어 상세 피드백"
-    }}
-
-    규칙:
-    1. score는 숫자만.
-    2. feedback은 다음 내용을 포함할 것:
-        - 공감이 잘 된 부분
-        - 부족한 부분
-        - 개선을 위한 구체적 조언
-    3. 전체 피드백은 친절하게.
-    4. JSON만 출력, 코드블록 금지.
-    5. 한국어만 사용.
     """
 
     # -----------------------------
@@ -139,7 +142,8 @@ async def evaluate_empathy_message_service(
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "user", "content": prompt}
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
         ]
     )
 
