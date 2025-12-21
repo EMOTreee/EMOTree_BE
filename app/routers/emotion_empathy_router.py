@@ -30,12 +30,16 @@ router = APIRouter(
 @router.get("/scenario", response_model=SituationCreateResponse)
 async def create_empathy_scenario(
     query: SelectedEmotionQuery = Depends(),
+    access_token: str | None = Cookie(default=None),   
 ):
     """
     감정 선택 기반 공감 상황 생성 API
     """
 
-    result = await create_empathy_scenario_service(query=query)
+    result = await create_empathy_scenario_service(
+        query=query,
+        token=access_token,
+    )
 
     # 서비스는 emotion과 scenario만 반환하므로 바로 매핑
     return SituationCreateResponse(

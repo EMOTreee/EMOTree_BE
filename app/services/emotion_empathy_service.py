@@ -17,10 +17,42 @@ from app.utils.jwt_provider import verify_access_token
 from app.models.empathy_training_result import EmpathyTrainingResult
 from app.models.empathy_type import EmpathyType
 
+from typing import Dict, Tuple
+from langchain.memory import ConversationBufferWindowMemory
+
 #서비스
 
 load_dotenv()
 
+empathy_user_memories: Dict[
+    Tuple[int, str],
+    ConversationBufferWindowMemory
+] = {}
+
+def get_or_create_empathy_memory(
+    user_id: int,
+    emotion: str
+) -> ConversationBufferWindowMemory:
+    
+    key = (user_id, emotion)
+
+    if key not in empathy_user_memories:
+        empathy_user_memories[key] = ConversationBufferWindowMemory(
+            k=5,  # ✅ 감정별 최대 5개
+            input_key="user_message",
+            output_key="feedback",
+            memory_key="chat_history",
+            return_messages=False
+        )
+        print(f"[INFO] 공감 메모리 생성 - user:{user_id}, emotion:{emotion}")
+
+    return empathy_user_memories[key]
+
+def reset_empathy_memory(user_id: int, emotion: str):
+    key = (user_id, emotion)
+    if key in empathy_user_memories:
+        empathy_user_memories[key].clear()
+        print(f"[INFO] 공감 메모리 초기화 - user:{user_id}, emotion:{emotion}")
 
 # -------------------------------------------------------
 # ⭐ 1) 공감 시나리오 생성 서비스
@@ -28,8 +60,16 @@ load_dotenv()
 async def create_empathy_scenario_service(
     *,
     query: SelectedEmotionQuery,
+    token: str | None
 ):
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+    user_id = None
+    if token:
+        payload = verify_access_token(token)  
+        if payload:
+            user_id = int(payload.get("sub"))  
+            reset_empathy_memory(user_id=user_id, emotion=query.option)
 
     # Emotion이 RANDOM이면 랜덤 선택
     if query.option == EmotionLabel.RANDOM:
@@ -98,28 +138,46 @@ async def evaluate_empathy_message_service(
 ):
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-    emotion = body.emotion # 선택한 감정도 저장해야하기때문에 추가
+    emotion = body.emotion
     scenario = body.scenario
     user_message = body.userMessage
+
+    user_id = None
+    if token:
+        payload = verify_access_token(token)  
+        if payload:
+            user_id = int(payload.get("sub"))  
+
+    memory = None
+    chat_history = "이전 시도 이력: 없음"
+
+    if user_id:
+        memory = get_or_create_empathy_memory(user_id, emotion)
+        memory_vars = memory.load_memory_variables({})
+        chat_history = memory_vars.get("chat_history") or "이전 시도 이력: 없음"
 
     # -----------------------------
     # 🔥 Prompt 설계
     # -----------------------------
-    system_prompt = """
+    system_prompt = f"""
     당신은 공감 능력 코칭 전문가입니다.
 
+    [이전 공감 시도 이력]
+    {chat_history}
+    
     아래 시나리오와 사용자의 공감 메시지를 평가한 뒤,
     반드시 아래 JSON 형식으로만 출력하세요:
 
-    {
-    "score": 0~100,
-    "feedback": "한국어 상세 피드백"
-    }
+    {{
+        "score": 0~100,
+        "feedback": "한국어 상세 피드백"
+    }}
 
     규칙:
     1. score는 0에서 100 사이의 숫자만 출력할 것.
     2. feedback에는 다음을 포함할 것:
     - 공감이 잘 된 부분
+    - 이전 시도 대비 개선/악화된 점
     - 개선을 위한 구체적인 조언
     - 만약 부족한 부분이 있다면 부족한 부분도 포함
     4. 전체 피드백은 친절하고 코칭하듯 작성할 것.
@@ -135,7 +193,6 @@ async def evaluate_empathy_message_service(
     사용자의 메시지:
     "{user_message}"
     """
-
     # -----------------------------
     # 🔥 OpenAI 호출
     # -----------------------------
@@ -157,16 +214,12 @@ async def evaluate_empathy_message_service(
 
     score = gpt_json["score"]
     feedback = gpt_json["feedback"]
-
-    #  access_token → user_id 파싱
-    # -------------------------------------------------------
-    user_id = None
-
-    if token:
-        payload = verify_access_token(token)  
-        if payload:
-            user_id = int(payload.get("sub"))  
-
+    
+    if memory:
+        memory.save_context(
+            {"user_message": user_message},
+            {"feedback": f"점수: {score}, 피드백: {feedback}"}
+        )
 
     predicted_label = None
     
