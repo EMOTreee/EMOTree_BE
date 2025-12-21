@@ -126,8 +126,6 @@ async def evaluate_empathy_message_service(
         memory_vars = memory.load_memory_variables({})
         chat_history = memory_vars.get("chat_history") or "이전 시도 이력: 없음"
 
-    print(chat_history)
-
     gpt_json = empathy_multi_chain.invoke(
         {
             "task": "evaluate",
