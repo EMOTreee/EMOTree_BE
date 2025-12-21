@@ -66,7 +66,7 @@ EMOTION_KOREAN = {
 chat_openai = ChatOpenAI(
     temperature=0.7,
     max_tokens=600,
-    model="gpt-4o",
+    model="gpt-4o-mini",
 )
 
 # 사용자별 메모리 저장소 (인메모리)
